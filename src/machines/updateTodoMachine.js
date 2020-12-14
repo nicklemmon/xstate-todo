@@ -2,19 +2,19 @@ import { Machine, assign } from 'xstate'
 import { API_BASE_URL, TODO_API_PATH } from 'src/constants'
 import { customAxios } from 'src/config'
 
-export const deleteTodoMachine = Machine({
-  id: 'delete-todo',
-  initial: 'deleting',
+export const updateTodoMachine = Machine({
+  id: 'update-todo',
+  initial: 'updating',
   context: {
-    todoId: '',
+    todo: {},
     response: {},
     error: {},
   },
   states: {
-    deleting: {
+    updating: {
       invoke: {
-        id: 'deleteTodo',
-        src: ctx => deleteTodo(ctx.todoId),
+        id: 'updateTodo',
+        src: ctx => updateTodo(ctx.todo),
         onDone: {
           target: 'success',
           actions: assign((_ctx, event) => {
@@ -42,11 +42,18 @@ export const deleteTodoMachine = Machine({
   },
 })
 
-function deleteTodo(todoId) {
+function updateTodo(todo) {
+  const { objectId, content, description, status } = todo
+
   return customAxios({
-    method: 'DELETE',
-    url: `${API_BASE_URL}/${TODO_API_PATH}/${todoId}`,
+    method: 'PUT',
+    url: `${API_BASE_URL}/${TODO_API_PATH}/${objectId}`,
     headers: { 'Content-Type': 'application/json' },
+    data: {
+      content,
+      description,
+      status,
+    },
   })
     .then(res => res)
     .catch(err => err)

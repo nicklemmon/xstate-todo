@@ -1,7 +1,12 @@
 import React from 'react'
 import { Machine, assign } from 'xstate'
 import { useMachine } from '@xstate/react'
-import { createTodoMachine, deleteTodoMachine, getTodosMachine } from 'src/machines'
+import {
+  createTodoMachine,
+  deleteTodoMachine,
+  getTodosMachine,
+  updateTodoMachine,
+} from 'src/machines'
 
 const newTodoInitialState = {
   content: '',
@@ -89,7 +94,23 @@ const todoAppMachine = Machine({
             onError: 'error',
           },
         },
-        updating: {},
+        updating: {
+          invoke: {
+            src: updateTodoMachine,
+            data: {
+              todo: ctx => {
+                return ctx.todoToUpdate
+              },
+            },
+            onDone: {
+              target: 'fetched',
+              actions: assign(() => {
+                return { todoToUpdate: {} }
+              }),
+            },
+            onError: 'error',
+          },
+        },
         submitting: {
           invoke: {
             src: createTodoMachine,
@@ -182,9 +203,17 @@ export function TodoForm() {
               <li key={todo.objectId}>
                 <span>{todo.content}</span>
 
-                <button type="button" disabled={isButtonDisabled} onClick={() => {}}>
-                  Done
-                </button>
+                {todo.status !== 'complete' ? (
+                  <button
+                    type="button"
+                    disabled={isButtonDisabled}
+                    onClick={() =>
+                      send({ type: 'UPDATE_TODO', todo: { ...todo, status: 'complete' } })
+                    }
+                  >
+                    Done
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
