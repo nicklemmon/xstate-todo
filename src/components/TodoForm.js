@@ -1,7 +1,7 @@
 import React from 'react'
 import { Machine, assign } from 'xstate'
 import { useMachine } from '@xstate/react'
-import { createTodoFormMachine, createTodoMachine, getTodosMachine } from 'src/machines'
+import { createTodoMachine, deleteTodoMachine, getTodosMachine } from 'src/machines'
 
 const newTodoInitialState = {
   content: '',
@@ -19,19 +19,21 @@ const todoAppMachine = Machine({
       description: '',
       status: 'incomplete',
     },
+    todoToUpdate: {},
+    todoToDeleteId: '',
   },
   states: {
     fetching: {
       invoke: {
         src: getTodosMachine,
         onDone: {
-          target: 'success',
+          target: 'fetched',
           actions: assign((_ctx, event) => ({ todos: event.data.todos })),
         },
         onError: 'error',
       },
     },
-    success: {
+    fetched: {
       initial: 'idle',
       // Handle form editing once the initial todo list is requested
       states: {
@@ -45,23 +47,57 @@ const todoAppMachine = Machine({
             },
             CHANGE_DESCRIPTION: {
               target: 'idle',
-              actions: assign((ctx, event) => ({
-                newTodo: { ...ctx.newTodo, description: event.value },
-              })),
+              actions: assign((ctx, event) => {
+                return {
+                  newTodo: { ...ctx.newTodo, description: event.value },
+                }
+              }),
             },
-            SUBMIT: {
-              target: 'pending',
+            DELETE_TODO: {
+              target: 'deleting',
+              actions: assign((_ctx, event) => {
+                return {
+                  todoToDeleteId: event.todoId,
+                }
+              }),
+            },
+            UPDATE_TODO: {
+              target: 'updating',
+              actions: assign((_ctx, event) => {
+                return {
+                  todoToUpdate: event.todo,
+                }
+              }),
+            },
+            SUBMIT_FORM: {
+              target: 'submitting',
             },
           },
         },
-        pending: {
+        deleting: {
+          invoke: {
+            src: deleteTodoMachine,
+            data: {
+              todoId: ctx => ctx.todoToDeleteId,
+            },
+            onDone: {
+              target: 'fetched',
+              actions: assign(() => {
+                return { todoToDelete: {} }
+              }),
+            },
+            onError: 'error',
+          },
+        },
+        updating: {},
+        submitting: {
           invoke: {
             src: createTodoMachine,
             data: {
               newTodo: ctx => ctx.newTodo,
             },
             onDone: {
-              target: 'success',
+              target: 'fetched',
               actions: assign(() => {
                 return { newTodo: newTodoInitialState }
               }),
@@ -69,7 +105,7 @@ const todoAppMachine = Machine({
             onError: 'error',
           },
         },
-        success: {
+        fetched: {
           type: 'final',
         },
         // TODO: Flesh this out
@@ -88,12 +124,15 @@ const todoAppMachine = Machine({
 
 export function TodoForm() {
   const [state, send] = useMachine(todoAppMachine)
+  const hasTodos = Boolean(state.context.todos.length)
 
   function handleSubmit(e) {
     e.preventDefault()
 
-    send({ type: 'SUBMIT' })
+    send({ type: 'SUBMIT_FORM' })
   }
+
+  console.log('state.value', state.value)
 
   return (
     <>
@@ -118,21 +157,42 @@ export function TodoForm() {
           onChange={e => send({ type: 'CHANGE_DESCRIPTION', value: e.target.value })}
         />
 
-        <button disabled={state.matches('fetching')}>
+        <button disabled={state.matches('fetching')} type="submit">
           {state.value === 'loading' ? 'Loading...' : 'Add Todo'}
         </button>
       </form>
 
-      {state.matches('fetching') ? <p>Loading...</p> : null}
+      {state.matches('fetching') && !hasTodos ? <p>Loading...</p> : null}
 
-      {state.matches('success') ? (
+      {/*
+        TODO: This could probably be addressed via state machines as well:
+        https://xstate.js.org/docs/guides/context.html
+      */}
+      {state.matches('fetched') && !hasTodos ? <p>No todos yet. Add some!</p> : null}
+
+      {hasTodos ? (
         <ul>
-          {state.context.todos.map((todo, index) => {
+          {state.context.todos.map(todo => {
+            const isButtonDisabled =
+              state.matches('fetching') ||
+              state.matches({ fetched: 'deleting' }) ||
+              state.matches({ fetched: 'updating' })
+
             return (
               <li key={todo.objectId}>
                 <span>{todo.content}</span>
-                <button onClick={() => {}}>Done</button>
-                <button onClick={() => {}}>Delete</button>
+
+                <button type="button" disabled={isButtonDisabled} onClick={() => {}}>
+                  Done
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isButtonDisabled}
+                  onClick={() => send({ type: 'DELETE_TODO', todoId: todo.objectId })}
+                >
+                  Delete
+                </button>
               </li>
             )
           })}
