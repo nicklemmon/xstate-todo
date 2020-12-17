@@ -1,6 +1,4 @@
-import React from 'react'
 import { Machine, assign } from 'xstate'
-import { useMachine } from '@xstate/react'
 import {
   createTodoMachine,
   deleteTodoMachine,
@@ -14,7 +12,7 @@ const newTodoInitialState = {
   status: 'incomplete',
 }
 
-const todoAppMachine = Machine({
+export const todoAppMachine = Machine({
   id: 'todo-app',
   initial: 'fetching',
   context: {
@@ -142,91 +140,3 @@ const todoAppMachine = Machine({
     },
   },
 })
-
-export function TodoForm() {
-  const [state, send] = useMachine(todoAppMachine)
-  const hasTodos = Boolean(state.context.todos.length)
-
-  function handleSubmit(e) {
-    e.preventDefault()
-
-    send({ type: 'SUBMIT_FORM' })
-  }
-
-  console.log('state.value', state.value)
-
-  return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="content">Task</label>
-        <input
-          id="content"
-          name="content"
-          type="text"
-          disabled={state.matches('fetching')}
-          value={state.context.newTodo.content}
-          onChange={e => send({ type: 'CHANGE_CONTENT', value: e.target.value })}
-        />
-
-        <label htmlFor="description">Description</label>
-        <input
-          id="description"
-          name="description"
-          type="text"
-          disabled={state.matches('fetching')}
-          value={state.context.newTodo.description}
-          onChange={e => send({ type: 'CHANGE_DESCRIPTION', value: e.target.value })}
-        />
-
-        <button disabled={state.matches('fetching')} type="submit">
-          {state.value === 'loading' ? 'Loading...' : 'Add Todo'}
-        </button>
-      </form>
-
-      {state.matches('fetching') && !hasTodos ? <p>Loading...</p> : null}
-
-      {/*
-        TODO: This could probably be addressed via state machines as well:
-        https://xstate.js.org/docs/guides/context.html
-      */}
-      {state.matches('fetched') && !hasTodos ? <p>No todos yet. Add some!</p> : null}
-
-      {hasTodos ? (
-        <ul>
-          {state.context.todos.map(todo => {
-            const isButtonDisabled =
-              state.matches('fetching') ||
-              state.matches({ fetched: 'deleting' }) ||
-              state.matches({ fetched: 'updating' })
-
-            return (
-              <li key={todo.objectId}>
-                <span>{todo.content}</span>
-
-                {todo.status !== 'complete' ? (
-                  <button
-                    type="button"
-                    disabled={isButtonDisabled}
-                    onClick={() =>
-                      send({ type: 'UPDATE_TODO', todo: { ...todo, status: 'complete' } })
-                    }
-                  >
-                    Done
-                  </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  disabled={isButtonDisabled}
-                  onClick={() => send({ type: 'DELETE_TODO', todoId: todo.objectId })}
-                >
-                  Delete
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      ) : null}
-    </>
-  )
-}

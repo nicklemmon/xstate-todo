@@ -1,11 +1,14 @@
 import React from 'react'
-import { TodoForm } from 'src/components'
+import { ThemeProvider } from '@sparkpost/matchbox'
+import { Layout, TodoApp } from 'src/components'
 
 function App() {
   return (
-    <>
-      <TodoForm />
-    </>
+    <ThemeProvider>
+      <Layout>
+        <TodoApp />
+      </Layout>
+    </ThemeProvider>
   )
 }
 
