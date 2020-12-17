@@ -1,30 +1,19 @@
 import React from 'react'
-import styled from 'styled-components'
-import {
-  Box,
-  Button,
-  Inline,
-  Panel,
-  TextField,
-  ScreenReaderOnly,
-  Stack,
-  Spinner,
-} from '@sparkpost/matchbox'
-import { CheckBox, CheckBoxOutlineBlank, DeleteOutline } from '@sparkpost/matchbox-icons'
+import { Button, Inline, Panel, TextField, ScreenReaderOnly, Stack } from '@sparkpost/matchbox'
+import { CheckBox, CheckBoxOutlineBlank } from '@sparkpost/matchbox-icons'
 import { useMachine } from '@xstate/react'
 import { todoAppMachine } from './todoAppMachine'
-
-const TodoListItem = styled('li')`
-  list-style-type: none;
-  position: relative; /* allows absolute positioning within */
-`
-
-const DeleteButton = styled(Button)`
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-`
+import {
+  Loading,
+  CheckButton,
+  ClearButton,
+  TodoListItem,
+  DeleteButton,
+  TodoDescription,
+  TodoContent,
+  Empty,
+  SubmitButton,
+} from './components'
 
 export function TodoApp() {
   const [state, send] = useMachine(todoAppMachine)
@@ -64,38 +53,28 @@ export function TodoApp() {
             />
 
             <Inline>
-              <Button color="blue" loading={state.matches('submitting')} submit>
-                {state.value === 'loading' ? 'Loading...' : 'Add Todo'}
-              </Button>
+              <SubmitButton loading={state.matches('submitting')}>Add Todo</SubmitButton>
 
-              <Button
-                variant="outline"
-                color="blue"
+              <ClearButton
                 disabled={state.matches('submitting')}
-                onClick={() => send({ type: 'CLEAR' })}
+                onClick={() => {
+                  send({ type: 'CHANGE_DESCRIPTION', value: '' })
+                  send({ type: 'CHANGE_CONTENT', value: '' })
+                }}
               >
                 Clear
-              </Button>
+              </ClearButton>
             </Inline>
           </Stack>
         </form>
       </Panel.Section>
 
-      <Panel.Section>
-        {state.matches('fetching') && !hasTodos ? (
-          <Box display="flex" alignItems="center" justifyContent="center">
-            <Spinner size="large" label="loading" />
-          </Box>
-        ) : null}
+      {state.matches('fetching') && !hasTodos && <Loading />}
 
-        {/*
-        TODO: This could probably be addressed via state machines as well:
-        https://xstate.js.org/docs/guides/context.html
-      */}
+      {state.matches('fetched') && !hasTodos && <Empty />}
 
-        {state.matches('fetched') && !hasTodos ? <p>No todos yet. Add some!</p> : null}
-
-        {hasTodos ? (
+      {hasTodos ? (
+        <Panel.Section>
           <Stack as="ul">
             {state.context.todos.map(todo => {
               const isButtonDisabled =
@@ -104,15 +83,9 @@ export function TodoApp() {
                 state.matches({ fetched: 'updating' })
 
               return (
-                <TodoListItem
-                  key={todo.objectId}
-                  style={{ position: 'relative', listStyleType: 'none' }}
-                >
+                <TodoListItem key={todo.objectId}>
                   <Inline>
-                    <Button
-                      color="blue"
-                      padding="300"
-                      variant="mutedOutline"
+                    <CheckButton
                       disabled={isButtonDisabled}
                       onClick={() =>
                         send({
@@ -126,46 +99,36 @@ export function TodoApp() {
                     >
                       {todo.status === 'incomplete' && (
                         <>
-                          <CheckBoxOutlineBlank />
+                          <Button.Icon as={CheckBoxOutlineBlank} />
                           <ScreenReaderOnly>Mark Complete</ScreenReaderOnly>
                         </>
                       )}
 
                       {todo.status === 'complete' && (
                         <>
-                          <CheckBox />
+                          <Button.Icon as={CheckBox} />
                           <ScreenReaderOnly>Mark Incomplete</ScreenReaderOnly>
                         </>
                       )}
-                    </Button>
+                    </CheckButton>
 
-                    <Box as="span">
-                      <Box as="span" display="block">
-                        {todo.content}
-                      </Box>
+                    <span>
+                      <TodoContent>{todo.content}</TodoContent>
 
-                      <Box as="span" display="block" fontSize="200" color="gray.600">
-                        {todo.description}
-                      </Box>
-                    </Box>
+                      <TodoDescription>{todo.description}</TodoDescription>
+                    </span>
                   </Inline>
 
                   <DeleteButton
-                    color="red"
-                    padding="300"
-                    variant="text"
                     disabled={isButtonDisabled}
                     onClick={() => send({ type: 'DELETE_TODO', todoId: todo.objectId })}
-                  >
-                    <DeleteOutline />
-                    <ScreenReaderOnly>Delete</ScreenReaderOnly>
-                  </DeleteButton>
+                  />
                 </TodoListItem>
               )
             })}
           </Stack>
-        ) : null}
-      </Panel.Section>
+        </Panel.Section>
+      ) : null}
     </Panel>
   )
 }
