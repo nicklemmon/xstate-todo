@@ -13,4 +13,5 @@ REACT_APP_APPLICATION_ID='<back4app-application-id-goes-here>'
 REACT_APP_JAVASCRIPT_API_KEY='<back4app-javascript-api-key-goes-here>'
 ```
 
-2. Run `npm start`
+2. Run `yarn install`
+3. Run `yarn start`
