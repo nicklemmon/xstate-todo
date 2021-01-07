@@ -1,7 +1,8 @@
 # XState Todo App
 
-Todo app built with [XState](https://xstate.js.org/), [React](https://reactjs.org/), and
-[Back4App](https://www.back4app.com/) ([Parse](https://parseplatform.org/) a service).
+Todo app built with [Matchbox](https://design.sparkpost.com/), [XState](https://xstate.js.org/),
+[React](https://reactjs.org/), and [Back4App](https://www.back4app.com/)
+([Parse](https://parseplatform.org/) a service).
 
 ## Development
 
