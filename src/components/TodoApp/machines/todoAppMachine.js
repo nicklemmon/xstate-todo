@@ -106,7 +106,9 @@ export const todoAppMachine = Machine({
                 return { todoToUpdate: {} }
               }),
             },
-            onError: 'error',
+            onError: {
+              target: 'error',
+            },
           },
         },
         submitting: {
@@ -127,7 +129,6 @@ export const todoAppMachine = Machine({
         fetched: {
           type: 'final',
         },
-        // TODO: Flesh this out
         error: {},
       },
       onDone: 'fetching',

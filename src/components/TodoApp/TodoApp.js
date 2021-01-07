@@ -1,12 +1,20 @@
 import React from 'react'
-import { Button, Inline, Panel, TextField, ScreenReaderOnly, Stack } from '@sparkpost/matchbox'
+import {
+  Banner,
+  Button,
+  Inline,
+  Panel,
+  TextField,
+  ScreenReaderOnly,
+  Stack,
+} from '@sparkpost/matchbox'
 import { CheckBox, CheckBoxOutlineBlank } from '@sparkpost/matchbox-icons'
 import { useMachine } from '@xstate/react'
-import { todoAppMachine } from './todoAppMachine'
+import { todoAppMachine } from './machines'
 import {
-  Loading,
   CheckButton,
   ClearButton,
+  Loading,
   TodoListItem,
   DeleteButton,
   TodoDescription,
@@ -17,6 +25,7 @@ import {
 
 export function TodoApp() {
   const [state, send] = useMachine(todoAppMachine)
+  console.log('state', state)
   const hasTodos = Boolean(state.context.todos?.length)
 
   function handleSubmit(e) {
@@ -32,6 +41,12 @@ export function TodoApp() {
       <Panel.Section>
         <form onSubmit={handleSubmit}>
           <Stack>
+            {state.matches({ fetched: 'error' }) && (
+              <Banner status="danger" size="small">
+                <p>Something went wrong - please try again.</p>
+              </Banner>
+            )}
+
             <TextField
               label="Task"
               id="content"
@@ -72,6 +87,8 @@ export function TodoApp() {
       {state.matches('fetching') && !hasTodos && <Loading />}
 
       {state.matches('fetched') && !hasTodos && <Empty />}
+
+      {state.matches('error') && <p>Todos failed to load. Try again later.</p>}
 
       {hasTodos ? (
         <Panel.Section>
